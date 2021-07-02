@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  reverseproxy:
+    depends_on:
+      - jenkins
+    image: reverseproxy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./data/certs:/etc/nginx/certs
+    restart: always
+
+  jenkins:
+    image: jenkins:jcasc
+    restart: always
+    env_file:
+      - .env
