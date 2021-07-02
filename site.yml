@@ -1,0 +1,47 @@
+---
+- hosts: localhost
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create user
+      user:
+        name: "{{ user.name }}"
+        create_home: yes
+        groups: sudo
+        append: yes
+    - name: Set home folder
+      set_fact:
+        home: "/home/{{ user.name }}"
+
+    - name: Install useful packages
+      apt:
+        pkg: "{{ packages }}"
+        state: present
+      become: true
+
+    - name: Setup dotfiles
+      block:
+        - name: Clone the dotfiles repo
+          git:
+            repo: "{{ dotfiles_url }}"
+            dest: "{{ home }}/.local/dotfiles"
+            update: false
+          register: dotfiles
+        - name: Deploy dotfiles
+          shell: "{{ home }}/.local/dotfiles/scripts/deploy.sh"
+          when: dotfiles.changed
+      tags: dotfiles
+
+    - name: Setup private dotfiles
+      block:
+        - name: Clone the private dotfiles repo
+          git:
+            repo: "{{ private_dotfiles_url }}"
+            dest: "{{ home }}/.local/utils"
+            update: false
+          register: private_dotfiles
+        - name: Deploy dotfiles
+          shell: "{{ home }}/.local/utils/laptop/deploy.sh"
+          when: private_dotfiles.changed
+      tags: dotfiles, private
+

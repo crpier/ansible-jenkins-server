@@ -1,0 +1,23 @@
+
+---
+user:
+  name: jeff
+
+home_folders:
+  projects_folder: Projects
+  tools_folder: Tools
+
+dotfiles_url: git@github.com:tiannaru/dotfiles
+private_dotfiles_url: git@github.com:tiannaru/utils
+
+git_repos:
+  - git@github.com:ansible/ansible
+
+packages:
+  - fish
+  - python2
+  - python2-pip
+  - python-pip
+  - tmux
+  - lazygit
+  - lazydocker
