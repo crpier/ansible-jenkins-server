@@ -1,4 +1,4 @@
-/data/*
+/data/certs/
 .env
 vars.yml
 inventory.ini
