@@ -1,23 +1,26 @@
 
 ---
 user:
-  name: jeff
+  name: Jeff
 
 home_folders:
-  projects_folder: Projects
   tools_folder: Tools
+  additional_folders:
+    - Dockerfiles
+    - Storage
 
 dotfiles_url: git@github.com:tiannaru/dotfiles
 private_dotfiles_url: git@github.com:tiannaru/utils
 
-git_repos:
-  - git@github.com:ansible/ansible
-
 packages:
-  - fish
+  - sudo
+  - fakeroot
   - python2
-  - python2-pip
   - python-pip
+  - make
+  - curl
+  - fish
   - tmux
-  - lazygit
-  - lazydocker
+
+certbot_email: johm.doe@example.com
+server_domain: example.com

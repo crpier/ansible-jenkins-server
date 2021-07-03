@@ -1,5 +1,5 @@
 ---
-- hosts: localhost
+- hosts: jenkins
   vars_files:
     - vars.yml
   tasks:
@@ -12,6 +12,29 @@
     - name: Set home folder
       set_fact:
         home: "/home/{{ user.name }}"
+
+    - name: Create home folder structure
+      file:
+        path: "{{ home }}/{{ item }}"
+        state: directory
+      with_items:
+        - "{{ home_folders.tools_folder }}"
+        - "{{ home_folders.additional_folders }}"
+
+    - name: Add private ssh key
+      copy:
+        src: vault/vps_rsa
+        dest: "/home/{{ user.name }}/.ssh/id_rsa"
+        owner: "{{ user.name }}"
+        group: "{{ user.name }}"
+        mode: "500"
+    - name: Add public ssh key
+      copy:
+        src: vault/vps_rsa.pub
+        dest: "/home/{{ user.name }}/.ssh/id_rsa.pub"
+        owner: "{{ user.name }}"
+        group: "{{ user.name }}"
+
 
     - name: Install useful packages
       apt:
@@ -44,4 +67,3 @@
           shell: "{{ home }}/.local/utils/laptop/deploy.sh"
           when: private_dotfiles.changed
       tags: dotfiles, private
-
