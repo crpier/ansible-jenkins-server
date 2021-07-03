@@ -13,147 +13,190 @@
       set_fact:
         home: "/home/{{ user.name }}"
 
-    - name: Create home folder structure
-      file:
-        path: "{{ home }}/{{ item }}"
-        state: directory
-      with_items:
-        - "{{ home_folders.tools_folder }}"
-        - "{{ home_folders.additional_folders }}"
-
-    - name: Add private ssh key
-      copy:
-        src: vault/vps_rsa
-        dest: "/home/{{ user.name }}/.ssh/id_rsa"
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-        mode: "500"
-    - name: Add public ssh key
-      copy:
-        src: vault/vps_rsa.pub
-        dest: "/home/{{ user.name }}/.ssh/id_rsa.pub"
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-
-
-    - name: Install useful packages
-      apt:
-        pkg: "{{ packages }}"
-        state: present
-      become: true
-
-    - name: Setup dotfiles
-      block:
-        - name: Clone the dotfiles repo
-          git:
-            repo: "{{ dotfiles_url }}"
-            dest: "{{ home }}/.local/dotfiles"
-            update: false
-          register: dotfiles
-        - name: Deploy dotfiles
-          shell: "{{ home }}/.local/dotfiles/scripts/deploy.sh"
-          when: dotfiles.changed
-      tags: dotfiles
-
-    - name: Setup private dotfiles
-      block:
-        - name: Clone the private dotfiles repo
-          git:
-            repo: "{{ private_dotfiles_url }}"
-            dest: "{{ home }}/.local/utils"
-            update: false
-          register: private_dotfiles
-        - name: Deploy dotfiles
-          shell: "{{ home }}/.local/utils/laptop/deploy.sh"
-          when: private_dotfiles.changed
-      tags: dotfiles, private
-
-    - name: Clone the ansible repo
-      git:
-        repo: git@github.com:tiannaru/ansible-jenkins-server.git
-        dest: "{{ home }}/ansible-jenkins-server"
-        update: false
-
-    - name: Clone the jcasc repo
-      git:
-        repo: git@github.com:tiannaru/jcasc.git
-        dest: "{{ home }}/jcasc"
-        update: false
-
-    - name: docker block
-      become: true
-      block:
-      - name: Install docker packages
-        apt:
-          name: "{{ item }}"
-          state: present
-          update_cache: yes
-        with_items:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - software-properties-common
-        tags:
-          - docker
-      - name: Add Docker s official GPG key
-        apt_key:
-          url: https://download.docker.com/linux/debian/gpg
-          state: present
-        tags:
-          - docker
-      - name: Verify that we have the key with the fingerprint
-        apt_key:
-          id: 0EBFCD88
-          state: present
-        tags:
-          - docker
-      - name: Set up the stable repository
-        apt_repository:
-          repo: deb [arch=amd64] https://download.docker.com/linux/debian buster stable
-          state: present
-          update_cache: yes
-        tags:
-          - docker
-      - name: Update apt packages
-        apt:
-          update_cache: yes
-        tags:
-          - docker
-      - name: Install docker
-        apt:
-          name: docker-ce
-          state: present
-          update_cache: yes
-        #notify: Start docker on boot
-        tags:
-          - docker
-      - name: Add user to "docker" group
-        user:
-          name: "{{ user.name }}"
-          groups: "docker"
-          append: yes
-        tags:
-          - docker
-      - name: Install docker-compose
-        get_url: 
-          url : https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
-          dest: /usr/local/bin/docker-compose
-          mode: 'u+x,a+x'
-
-    - name: Build jenkins docker image
-      community.docker.docker_image:
-        name: jenkins
-        source: build
-        tag: jcasc
-        build:
-          path: "{{ home }}/jcasc/"
-
-    - name: Build nginx docker image
-      docker_image:
-        name: reverseproxy
-        source: build
-        tag: latest
-        build:
-          path: "{{ home }}/ansible-jenkins-server/dockerfiles"
-          dockerfile: "{{ home }}/ansible-jenkins-server/dockerfiles/nginx.Dockerfile"
+#     - name: Create home folder structure
+#       file:
+#         path: "{{ home }}/{{ item }}"
+#         state: directory
+#       with_items:
+#         - "{{ home_folders.tools_folder }}"
+#         - "{{ home_folders.additional_folders }}"
+# 
+#     - name: Add private ssh key
+#       copy:
+#         src: vault/vps_rsa
+#         dest: "/home/{{ user.name }}/.ssh/id_rsa"
+#         owner: "{{ user.name }}"
+#         group: "{{ user.name }}"
+#         mode: "500"
+#     - name: Add public ssh key
+#       copy:
+#         src: vault/vps_rsa.pub
+#         dest: "/home/{{ user.name }}/.ssh/id_rsa.pub"
+#         owner: "{{ user.name }}"
+#         group: "{{ user.name }}"
+# 
+# 
+#     - name: Install useful packages
+#       apt:
+#         pkg: "{{ packages }}"
+#         state: present
+#       become: true
+# 
+#     - name: Setup dotfiles
+#       block:
+#         - name: Clone the dotfiles repo
+#           git:
+#             repo: "{{ dotfiles_url }}"
+#             dest: "{{ home }}/.local/dotfiles"
+#             update: false
+#           register: dotfiles
+#         - name: Deploy dotfiles
+#           shell: "{{ home }}/.local/dotfiles/scripts/deploy.sh"
+#           when: dotfiles.changed
+#       tags: dotfiles
+# 
+#     - name: Setup private dotfiles
+#       block:
+#         - name: Clone the private dotfiles repo
+#           git:
+#             repo: "{{ private_dotfiles_url }}"
+#             dest: "{{ home }}/.local/utils"
+#             update: false
+#           register: private_dotfiles
+#         - name: Deploy dotfiles
+#           shell: "{{ home }}/.local/utils/laptop/deploy.sh"
+#           when: private_dotfiles.changed
+#       tags: dotfiles, private
+# 
+#     - name: Clone the ansible repo
+#       git:
+#         repo: git@github.com:tiannaru/ansible-jenkins-server.git
+#         dest: "{{ home }}/ansible-jenkins-server"
+#         update: false
+# 
+#     - name: Clone the jcasc repo
+#       git:
+#         repo: git@github.com:tiannaru/jcasc.git
+#         dest: "{{ home }}/jcasc"
+#         update: false
+# 
+#     - name: docker block
+#       become: true
+#       block:
+#       - name: Install docker packages
+#         apt:
+#           name: "{{ item }}"
+#           state: present
+#           update_cache: yes
+#         with_items:
+#           - apt-transport-https
+#           - ca-certificates
+#           - curl
+#           - software-properties-common
+#         tags:
+#           - docker
+#       - name: Add Docker s official GPG key
+#         apt_key:
+#           url: https://download.docker.com/linux/debian/gpg
+#           state: present
+#         tags:
+#           - docker
+#       - name: Verify that we have the key with the fingerprint
+#         apt_key:
+#           id: 0EBFCD88
+#           state: present
+#         tags:
+#           - docker
+#       - name: Set up the stable repository
+#         apt_repository:
+#           repo: deb [arch=amd64] https://download.docker.com/linux/debian buster stable
+#           state: present
+#           update_cache: yes
+#         tags:
+#           - docker
+#       - name: Update apt packages
+#         apt:
+#           update_cache: yes
+#         tags:
+#           - docker
+#       - name: Install docker
+#         apt:
+#           name: docker-ce
+#           state: present
+#           update_cache: yes
+#         #notify: Start docker on boot
+#         tags:
+#           - docker
+#       - name: Add user to "docker" group
+#         user:
+#           name: "{{ user.name }}"
+#           groups: "docker"
+#           append: yes
+#         tags:
+#           - docker
+#       - name: Install docker-compose
+#         get_url: 
+#           url : https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
+#           dest: /usr/local/bin/docker-compose
+#           mode: 'u+x,a+x'
+# 
+#     - name: Build jenkins docker image
+#       community.docker.docker_image:
+#         name: jenkins
+#         source: build
+#         tag: jcasc
+#         build:
+#           path: "{{ home }}/jcasc/"
+# 
+#     - name: Build nginx docker image
+#       docker_image:
+#         name: reverseproxy
+#         source: build
+#         tag: latest
+#         build:
+#           path: "{{ home }}/ansible-jenkins-server/dockerfiles"
+#           dockerfile: "{{ home }}/ansible-jenkins-server/dockerfiles/nginx.Dockerfile"
     
+    - name: Ensure docker-compose service
+      block:
+      - name: add lib folder
+        become: true
+        copy: 
+          src: "{{ home }}/ansible-jenkins-server/dockerfiles/"
+          remote_src: yes
+          dest: /var/lib/docker-compose
+          owner: root
+          group: root
+          mode: '0755'
+      - name: ensure cert is in lib
+        become: true
+        copy: 
+          src: /etc/letsencrypt/live/404n-amgasit.ro/fullchain.pem
+          remote_src: yes
+          dest: /var/lib/docker-compose/
+          owner: root
+          group: root
+          mode: '0755'
+      - name: ensure privkey is in lib
+        become: true
+        copy: 
+          src: /etc/letsencrypt/live/404n-amgasit.ro/privkey.pem
+          remote_src: yes
+          dest: /var/lib/docker-compose/
+          owner: root
+          group: root
+          mode: '0755'
+      - name: copy docker-compose service file
+        become: true
+        copy: 
+          src: configfiles/docker-compose.service
+          dest: /etc/systemd/system/docker-compose.service
+          owner: root
+          group: root
+          mode: '0755'
+      - name: enable docker-compose sevice
+        become: true
+        service:
+          name: docker-compose
+          enabled: yes
+          state: started
