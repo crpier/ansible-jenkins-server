@@ -67,3 +67,93 @@
           shell: "{{ home }}/.local/utils/laptop/deploy.sh"
           when: private_dotfiles.changed
       tags: dotfiles, private
+
+    - name: Clone the ansible repo
+      git:
+        repo: git@github.com:tiannaru/ansible-jenkins-server.git
+        dest: "{{ home }}/ansible-jenkins-server"
+        update: false
+
+    - name: Clone the jcasc repo
+      git:
+        repo: git@github.com:tiannaru/jcasc.git
+        dest: "{{ home }}/jcasc"
+        update: false
+
+    - name: docker block
+      become: true
+      block:
+      - name: Install docker packages
+        apt:
+          name: "{{ item }}"
+          state: present
+          update_cache: yes
+        with_items:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        tags:
+          - docker
+      - name: Add Docker s official GPG key
+        apt_key:
+          url: https://download.docker.com/linux/debian/gpg
+          state: present
+        tags:
+          - docker
+      - name: Verify that we have the key with the fingerprint
+        apt_key:
+          id: 0EBFCD88
+          state: present
+        tags:
+          - docker
+      - name: Set up the stable repository
+        apt_repository:
+          repo: deb [arch=amd64] https://download.docker.com/linux/debian buster stable
+          state: present
+          update_cache: yes
+        tags:
+          - docker
+      - name: Update apt packages
+        apt:
+          update_cache: yes
+        tags:
+          - docker
+      - name: Install docker
+        apt:
+          name: docker-ce
+          state: present
+          update_cache: yes
+        #notify: Start docker on boot
+        tags:
+          - docker
+      - name: Add user to "docker" group
+        user:
+          name: "{{ user.name }}"
+          groups: "docker"
+          append: yes
+        tags:
+          - docker
+      - name: Install docker-compose
+        get_url: 
+          url : https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
+          dest: /usr/local/bin/docker-compose
+          mode: 'u+x,a+x'
+
+    - name: Build jenkins docker image
+      community.docker.docker_image:
+        name: jenkins
+        source: build
+        tag: jcasc
+        build:
+          path: "{{ home }}/jcasc/"
+
+    - name: Build nginx docker image
+      docker_image:
+        name: reverseproxy
+        source: build
+        tag: latest
+        build:
+          path: "{{ home }}/ansible-jenkins-server/dockerfiles"
+          dockerfile: "{{ home }}/ansible-jenkins-server/dockerfiles/nginx.Dockerfile"
+    
