@@ -8,9 +8,8 @@ Type=oneshot
 User=root
 Group=root
 RemainAfterExit=yes
-WorkingDirectory=/srv/docker
-ExecStart=/usr/bin/docker-compose -f /var/lib/docker-compose/docker-compose.yml up -d
-ExecStop=/usr/bin/docker-compose -f /var/lib/docker-compose/docker-compose.yml down
+ExecStart=/usr/local/bin/docker-compose -f /var/lib/docker-compose/docker-compose.yml up -d
+ExecStop=/usr/local/bin/docker-compose -f /var/lib/docker-compose/docker-compose.yml down
 TimeoutStartSec=0
 
 [Install]
