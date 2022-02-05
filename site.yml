@@ -1,5 +1,5 @@
 ---
-- hosts: jenkins
+- hosts: localhost
   vars_files:
     - vars.yml
   tasks:
@@ -38,19 +38,6 @@
        state: directory
        owner: "{{ user.name }}"
        group: "{{ user.name }}"
-   - name: Add private ssh key
-     copy:
-       src: vault/vps_rsa
-       dest: "/home/{{ user.name }}/.ssh/id_rsa"
-       owner: "{{ user.name }}"
-       group: "{{ user.name }}"
-       mode: "500"
-   - name: Add public ssh key
-     copy:
-       src: vault/vps_rsa.pub
-       dest: "/home/{{ user.name }}/.ssh/id_rsa.pub"
-       owner: "{{ user.name }}"
-       group: "{{ user.name }}"
 
    - name: Add to sudoers
      copy:
@@ -68,60 +55,6 @@
        mode: 0755
        owner: "{{ user.name }}"
        group: "{{ user.name }}"
-
-   - name: Setup dotfiles
-     become: true
-     become_user: "{{ user.name }}"
-     block:
-       - name: Clone the dotfiles repo
-         git:
-           repo: "{{ dotfiles_url }}"
-           accept_hostkey: yes
-           dest: "{{ home }}/.local/dotfiles"
-           update: false
-           key_file:  "{{ home }}/.ssh/id_rsa"
-         register: dotfiles
-       - name: Deploy dotfiles
-         shell: "{{ home }}/.local/dotfiles/scripts/deploy.sh"
-         when: dotfiles.changed
-     tags: dotfiles
-
-   - name: Setup private dotfiles
-     become: true
-     become_user: "{{ user.name }}"
-     block:
-       - name: Clone the private dotfiles repo
-         git:
-           repo: "{{ private_dotfiles_url }}"
-           accept_hostkey: yes
-           dest: "{{ home }}/.local/utils"
-           update: false
-           key_file:  "{{ home }}/.ssh/id_rsa"
-         register: private_dotfiles
-       - name: Deploy dotfiles
-         shell: "{{ home }}/.local/utils/laptop/deploy.sh"
-         when: private_dotfiles.changed
-     tags: dotfiles, private
-
-   - name: Clone the ansible repo
-     become: true
-     become_user: "{{ user.name }}"
-     git:
-       repo: git@github.com:tiannaru/ansible-jenkins-server.git
-       accept_hostkey: yes
-       dest: "{{ home }}/ansible-jenkins-server"
-       key_file:  "{{ home }}/.ssh/id_rsa"
-       update: false
-
-   - name: Clone the jcasc repo
-     become: true
-     become_user: "{{ user.name }}"
-     git:
-       repo: git@github.com:tiannaru/jcasc.git
-       accept_hostkey: yes
-       dest: "{{ home }}/jcasc"
-       key_file:  "{{ home }}/.ssh/id_rsa"
-       update: false
 
    - name: docker block
      become: true
@@ -223,7 +156,7 @@
        - name: ensure cert is in lib
          become: true
          copy: 
-           src: /etc/letsencrypt/live/404n-amgasit.ro/fullchain.pem
+           src: /etc/letsencrypt/live/tiannaru.xyz/fullchain.pem
            remote_src: yes
            dest: /var/lib/docker-compose/
            owner: root
@@ -232,7 +165,7 @@
        - name: ensure privkey is in lib
          become: true
          copy: 
-           src: /etc/letsencrypt/live/404n-amgasit.ro/privkey.pem
+           src: /etc/letsencrypt/live/tiannaru.xyz/privkey.pem
            remote_src: yes
            dest: /var/lib/docker-compose/
            owner: root
